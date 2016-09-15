@@ -156,6 +156,7 @@ class KafkaServer(val config: KafkaConfig, time: Time = SystemTime, threadNamePr
   )
 
   /**
+   * Kafka 服务启动
    * Start up API for bringing up a single instance of the Kafka server.
    * Instantiates the LogManager, the SocketServer and the request handlers - KafkaRequestHandlers
    */
@@ -603,7 +604,7 @@ class KafkaServer(val config: KafkaConfig, time: Time = SystemTime, threadNamePr
     val configs = AdminUtils.fetchAllTopicConfigs(zkUtils).map { case (topic, configs) =>
       topic -> LogConfig.fromProps(defaultProps, configs)
     }
-    // read the log configurations from zookeeper
+    // read the log configurations from zookeeper 
     val cleanerConfig = CleanerConfig(numThreads = config.logCleanerThreads,
                                       dedupeBufferSize = config.logCleanerDedupeBufferSize,
                                       dedupeBufferLoadFactor = config.logCleanerDedupeBufferLoadFactor,

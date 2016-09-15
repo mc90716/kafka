@@ -13,7 +13,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+ *//*
 
 package org.apache.kafka.streams.integration.utils;
 
@@ -42,22 +42,22 @@ import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-/**
+*//**
  * Utility functions to make integration testing more convenient.
- */
+ *//*
 public class IntegrationTestUtils {
 
     public static final int UNLIMITED_MESSAGES = -1;
     public static final long DEFAULT_TIMEOUT = 30 * 1000L;
 
-    /**
+    *//**
      * Returns up to `maxMessages` message-values from the topic.
      *
      * @param topic          Kafka topic to read messages from
      * @param consumerConfig Kafka consumer configuration
      * @param maxMessages    Maximum number of messages to read via the consumer.
      * @return The values retrieved via the consumer.
-     */
+     *//*
     public static <V> List<V> readValues(final String topic, final Properties consumerConfig, final int maxMessages) {
         final List<V> returnList = new ArrayList<>();
         final List<KeyValue<Object, V>> kvs = readKeyValues(topic, consumerConfig, maxMessages);
@@ -67,19 +67,19 @@ public class IntegrationTestUtils {
         return returnList;
     }
 
-    /**
+    *//**
      * Returns as many messages as possible from the topic until a (currently hardcoded) timeout is
      * reached.
      *
      * @param topic          Kafka topic to read messages from
      * @param consumerConfig Kafka consumer configuration
      * @return The KeyValue elements retrieved via the consumer.
-     */
+     *//*
     public static <K, V> List<KeyValue<K, V>> readKeyValues(final String topic, final Properties consumerConfig) {
         return readKeyValues(topic, consumerConfig, UNLIMITED_MESSAGES);
     }
 
-    /**
+    *//**
      * Returns up to `maxMessages` by reading via the provided consumer (the topic(s) to read from
      * are already configured in the consumer).
      *
@@ -87,7 +87,7 @@ public class IntegrationTestUtils {
      * @param consumerConfig Kafka consumer configuration
      * @param maxMessages    Maximum number of messages to read via the consumer
      * @return The KeyValue elements retrieved via the consumer
-     */
+     *//*
     public static <K, V> List<KeyValue<K, V>> readKeyValues(final String topic, final Properties consumerConfig, final int maxMessages) {
         final KafkaConsumer<K, V> consumer = new KafkaConsumer<>(consumerConfig);
         consumer.subscribe(Collections.singletonList(topic));
@@ -110,11 +110,11 @@ public class IntegrationTestUtils {
         return maxMessages <= 0 || messagesConsumed < maxMessages;
     }
 
-    /**
+    *//**
      * Removes local state stores.  Useful to reset state in-between integration test runs.
      *
      * @param streamsConfiguration Streams configuration settings
-     */
+     *//*
     public static void purgeLocalStreamsState(final Properties streamsConfiguration) throws IOException {
         final String tmpDir = TestUtils.IO_TMP_DIR.getPath();
         final String path = streamsConfiguration.getProperty(StreamsConfig.STATE_DIR_CONFIG);
@@ -128,13 +128,13 @@ public class IntegrationTestUtils {
         }
     }
 
-    /**
+    *//**
      * @param topic          Kafka topic to write the data records to
      * @param records        Data records to write to Kafka
      * @param producerConfig Kafka producer configuration
      * @param <K>            Key type of the data records
      * @param <V>            Value type of the data records
-     */
+     *//*
     public static <K, V> void produceKeyValuesSynchronously(
         final String topic, final Collection<KeyValue<K, V>> records, final Properties producerConfig, final Time time)
         throws ExecutionException, InterruptedException {
@@ -180,7 +180,7 @@ public class IntegrationTestUtils {
         return waitUntilMinKeyValueRecordsReceived(consumerConfig, topic, expectedNumRecords, DEFAULT_TIMEOUT);
     }
 
-    /**
+    *//**
      * Wait until enough data (key-value records) has been consumed.
      *
      * @param consumerConfig     Kafka Consumer configuration
@@ -190,7 +190,7 @@ public class IntegrationTestUtils {
      * @return All the records consumed, or null if no records are consumed
      * @throws InterruptedException
      * @throws AssertionError       if the given wait time elapses
-     */
+     *//*
     public static <K, V> List<KeyValue<K, V>> waitUntilMinKeyValueRecordsReceived(final Properties consumerConfig,
                                                                                   final String topic,
                                                                                   final int expectedNumRecords,
@@ -220,7 +220,7 @@ public class IntegrationTestUtils {
         return waitUntilMinValuesRecordsReceived(consumerConfig, topic, expectedNumRecords, DEFAULT_TIMEOUT);
     }
 
-    /**
+    *//**
      * Wait until enough data (value records) has been consumed.
      *
      * @param consumerConfig     Kafka Consumer configuration
@@ -230,7 +230,7 @@ public class IntegrationTestUtils {
      * @return All the records consumed, or null if no records are consumed
      * @throws InterruptedException
      * @throws AssertionError       if the given wait time elapses
-     */
+     *//*
     public static <V> List<V> waitUntilMinValuesRecordsReceived(final Properties consumerConfig,
                                                                 final String topic,
                                                                 final int expectedNumRecords,
@@ -254,3 +254,4 @@ public class IntegrationTestUtils {
     }
 
 }
+*/

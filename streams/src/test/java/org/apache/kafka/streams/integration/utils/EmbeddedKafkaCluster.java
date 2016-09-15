@@ -13,7 +13,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+ *//*
 
 package org.apache.kafka.streams.integration.utils;
 
@@ -27,9 +27,9 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.Properties;
 
-/**
+*//**
  * Runs an in-memory, "embedded" Kafka cluster with 1 ZooKeeper instance and 1 Kafka broker.
- */
+ *//*
 public class EmbeddedKafkaCluster extends ExternalResource {
 
     private static final Logger log = LoggerFactory.getLogger(EmbeddedKafkaCluster.class);
@@ -43,9 +43,9 @@ public class EmbeddedKafkaCluster extends ExternalResource {
 
     public MockTime time = new MockTime();
 
-    /**
+    *//**
      * Creates and starts a Kafka cluster.
-     */
+     *//*
     public void start() throws IOException, InterruptedException {
         final Properties brokerConfig = new Properties();
 
@@ -69,9 +69,9 @@ public class EmbeddedKafkaCluster extends ExternalResource {
         }
     }
 
-    /**
+    *//**
      * Stop the Kafka cluster.
-     */
+     *//*
     public void stop() {
         for (final KafkaEmbedded broker : brokers) {
             broker.stop();
@@ -79,21 +79,21 @@ public class EmbeddedKafkaCluster extends ExternalResource {
         zookeeper.shutdown();
     }
 
-    /**
+    *//**
      * The ZooKeeper connection string aka `zookeeper.connect` in `hostnameOrIp:port` format.
      * Example: `127.0.0.1:2181`.
      * <p>
      * You can use this to e.g. tell Kafka brokers how to connect to this instance.
-     */
+     *//*
     public String zKConnectString() {
         return "localhost:" + zookeeper.port();
     }
 
-    /**
+    *//**
      * This cluster's `bootstrap.servers` value.  Example: `127.0.0.1:9092`.
      * <p>
      * You can use this to tell Kafka producers how to connect to this cluster.
-     */
+     *//*
     public String bootstrapServers() {
         return brokers[0].brokerList();
     }
@@ -106,34 +106,34 @@ public class EmbeddedKafkaCluster extends ExternalResource {
         stop();
     }
 
-    /**
+    *//**
      * Create a Kafka topic with 1 partition and a replication factor of 1.
      *
      * @param topic The name of the topic.
-     */
+     *//*
     public void createTopic(final String topic) {
         createTopic(topic, 1, 1, new Properties());
     }
 
-    /**
+    *//**
      * Create a Kafka topic with the given parameters.
      *
      * @param topic       The name of the topic.
      * @param partitions  The number of partitions for this topic.
      * @param replication The replication factor for (the partitions of) this topic.
-     */
+     *//*
     public void createTopic(final String topic, final int partitions, final int replication) {
         createTopic(topic, partitions, replication, new Properties());
     }
 
-    /**
+    *//**
      * Create a Kafka topic with the given parameters.
      *
      * @param topic       The name of the topic.
      * @param partitions  The number of partitions for this topic.
      * @param replication The replication factor for (partitions of) this topic.
      * @param topicConfig Additional topic-level configuration settings.
-     */
+     *//*
     public void createTopic(final String topic,
                             final int partitions,
                             final int replication,
@@ -145,3 +145,4 @@ public class EmbeddedKafkaCluster extends ExternalResource {
         brokers[0].deleteTopic(topic);
     }
 }
+*/

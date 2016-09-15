@@ -11,7 +11,7 @@
  * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
- */
+ *//*
 package org.apache.kafka.streams.integration;
 
 
@@ -47,10 +47,10 @@ import java.util.Properties;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
-/**
+*//**
  * End-to-end integration test that demonstrates how to perform a join between a KStream and a
  * KTable (think: KStream.leftJoin(KTable)), i.e. an example of a stateful computation.
- */
+ *//*
 public class KStreamKTableJoinIntegrationTest {
     private static final int NUM_BROKERS = 1;
 
@@ -69,9 +69,9 @@ public class KStreamKTableJoinIntegrationTest {
         CLUSTER.createTopic(OUTPUT_TOPIC);
     }
 
-    /**
+    *//**
      * Tuple for a region and its associated number of clicks.
-     */
+     *//*
     private static final class RegionWithClicks {
 
         private final String region;
@@ -114,11 +114,11 @@ public class KStreamKTableJoinIntegrationTest {
 
         // Input 2: Region per user (multiple records allowed per user).
         final List<KeyValue<String, String>> userRegions = Arrays.asList(
-            new KeyValue<>("alice", "asia"),   /* Alice lived in Asia originally... */
+            new KeyValue<>("alice", "asia"),    Alice lived in Asia originally... 
             new KeyValue<>("bob", "americas"),
             new KeyValue<>("chao", "asia"),
             new KeyValue<>("dave", "europe"),
-            new KeyValue<>("alice", "europe"), /* ...but moved to Europe some time later. */
+            new KeyValue<>("alice", "europe"),  ...but moved to Europe some time later. 
             new KeyValue<>("eve", "americas"),
             new KeyValue<>("fang", "asia")
         );
@@ -259,3 +259,4 @@ public class KStreamKTableJoinIntegrationTest {
     }
 
 }
+*/

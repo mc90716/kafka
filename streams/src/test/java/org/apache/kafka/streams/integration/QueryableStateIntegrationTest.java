@@ -11,7 +11,7 @@
  * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
- */
+ *//*
 package org.apache.kafka.streams.integration;
 
 import kafka.utils.MockTime;
@@ -166,14 +166,14 @@ public class QueryableStateIntegrationTest {
     }
 
 
-    /**
+    *//**
      * Creates a typical word count topology
      *
      * @param inputTopic
      * @param outputTopic
      * @param streamsConfiguration config
      * @return
-     */
+     *//*
     private KafkaStreams createCountStream(final String inputTopic, final String outputTopic, final Properties streamsConfiguration) {
         final KStreamBuilder builder = new KStreamBuilder();
         final Serde<String> stringSerde = Serdes.String();
@@ -558,7 +558,7 @@ public class QueryableStateIntegrationTest {
         assertThat(countState, equalTo(expectedCount));
     }
 
-    /**
+    *//**
      * Verify that the new count is greater than or equal to the previous count.
      * Note: this method changes the values in expectedWindowState and expectedCount
      *
@@ -571,7 +571,7 @@ public class QueryableStateIntegrationTest {
      *                              the method merely inserts the new found key into the list of
      *                              expected keys.
      * @throws InterruptedException
-     */
+     *//*
     private void verifyGreaterOrEqual(final String[] keys,
                                       final Map<String, Long> expectedWindowedCount,
                                       final Map<String, Long> expectedCount,
@@ -655,9 +655,9 @@ public class QueryableStateIntegrationTest {
     }
 
 
-    /**
+    *//**
      * A class that periodically produces records in a separate thread
-     */
+     *//*
     private class ProducerRunnable implements Runnable {
         private final String topic;
         private final List<String> inputValues;
@@ -707,3 +707,4 @@ public class QueryableStateIntegrationTest {
 
 
 }
+*/

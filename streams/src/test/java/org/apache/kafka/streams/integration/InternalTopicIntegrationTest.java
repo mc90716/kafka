@@ -13,7 +13,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+ *//*
 package org.apache.kafka.streams.integration;
 
 
@@ -57,9 +57,9 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-/**
+*//**
  * Tests related to internal topics in streams
- */
+ *//*
 public class InternalTopicIntegrationTest {
     private static final int NUM_BROKERS = 1;
     @ClassRule
@@ -223,3 +223,4 @@ public class InternalTopicIntegrationTest {
         assertEquals(retention, Long.valueOf(properties.getProperty(LogConfig.RetentionMsProp())));
     }
 }
+*/

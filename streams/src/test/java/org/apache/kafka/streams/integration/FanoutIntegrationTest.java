@@ -13,7 +13,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+ *//*
 package org.apache.kafka.streams.integration;
 
 
@@ -45,7 +45,7 @@ import java.util.Properties;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
-/**
+*//**
  * End-to-end integration test that demonstrates "fan-out", using an embedded Kafka cluster.
  * <p>
  * This example shows how you can read from one input topic/stream, transform the data (here:
@@ -63,7 +63,7 @@ import static org.junit.Assert.assertThat;
  *
  * }
  * </pre>
- */
+ *//*
 public class FanoutIntegrationTest {
     private static final int NUM_BROKERS = 1;
     @ClassRule
@@ -163,3 +163,4 @@ public class FanoutIntegrationTest {
     }
 
 }
+*/

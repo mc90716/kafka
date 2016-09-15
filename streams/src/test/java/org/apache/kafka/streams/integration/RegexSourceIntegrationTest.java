@@ -11,7 +11,7 @@
  * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
- */
+ *//*
 
 
 package org.apache.kafka.streams.integration;
@@ -62,10 +62,10 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
-/**
+*//**
  * End-to-end integration test based on using regex and named topics for creating sources, using
  * an embedded Kafka cluster.
- */
+ *//*
 public class RegexSourceIntegrationTest {
     private static final int NUM_BROKERS = 1;
     @ClassRule
@@ -338,3 +338,4 @@ public class RegexSourceIntegrationTest {
 
     }
 }
+*/

@@ -13,17 +13,18 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+ *//*
 package kafka.examples;
 
+import java.util.Collections;
+import java.util.Properties;
+
 import kafka.utils.ShutdownableThread;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-
-import java.util.Collections;
-import java.util.Properties;
 
 public class Consumer extends ShutdownableThread {
     private final KafkaConsumer<Integer, String> consumer;
@@ -63,3 +64,4 @@ public class Consumer extends ShutdownableThread {
         return false;
     }
 }
+*/
