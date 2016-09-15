@@ -86,6 +86,10 @@ class SocketServer(val config: KafkaConfig, val metrics: Metrics, val time: Time
       val brokerId = config.brokerId
 
       var processorBeginIndex = 0
+      /**
+       * 一个endpoint代表监听的一个端口号，一个端口号对应的一个Acceptor(Acceptor用于接收请求)，
+       * 一个Acceptor对应多个Processor来处理请求
+       */
       endpoints.values.foreach { endpoint =>
         val protocol = endpoint.protocolType
         val processorEndIndex = processorBeginIndex + numProcessorThreads
@@ -271,6 +275,7 @@ private[kafka] class Acceptor(val endPoint: EndPoint,
                   throw new IllegalStateException("Unrecognized key state for acceptor thread.")
 
                 // round robin to the next processor thread
+                //round robin策略来轮转Processor，处理请求
                 currentProcessor = (currentProcessor + 1) % processors.length
               } catch {
                 case e: Throwable => error("Error while accepting connection", e)

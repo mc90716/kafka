@@ -174,15 +174,25 @@ class KafkaServer(val config: KafkaConfig, time: Time = SystemTime, threadNamePr
       if (canStartup) {
         metrics = new Metrics(metricConfig, reporters, kafkaMetricsTime, true)
 
+        //设置broker的状态
         brokerState.newState(Starting)
 
         /* start scheduler */
+        /**
+         * 启动kafka scheduler，kafka scheduler是一个线程池，依赖于ScheduledThreadPoolExecutor
+         */
         kafkaScheduler.startup()
 
         /* setup zookeeper */
+        /**
+         * 初始化zclient，主要用于从zk中获取kafka相关的信息
+         */
         zkUtils = initZk()
 
         /* start log manager */
+        /**
+         * 初始化并启动kafka的数据管理模块
+         */
         logManager = createLogManager(zkUtils.zkClient, brokerState)
         logManager.startup()
 
@@ -192,6 +202,9 @@ class KafkaServer(val config: KafkaConfig, time: Time = SystemTime, threadNamePr
 
         metadataCache = new MetadataCache(config.brokerId)
 
+        /**
+         * 启动kafka socket server
+         */
         socketServer = new SocketServer(config, metrics, kafkaMetricsTime)
         socketServer.startup()
 
