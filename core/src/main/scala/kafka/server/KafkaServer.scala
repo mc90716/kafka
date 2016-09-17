@@ -208,12 +208,16 @@ class KafkaServer(val config: KafkaConfig, time: Time = SystemTime, threadNamePr
         socketServer = new SocketServer(config, metrics, kafkaMetricsTime)
         socketServer.startup()
 
-        /* start replica manager */
+        /**
+         * 启动副本管理器
+         */
         replicaManager = new ReplicaManager(config, metrics, time, kafkaMetricsTime, zkUtils, kafkaScheduler, logManager,
           isShuttingDown)
         replicaManager.startup()
 
-        /* start kafka controller */
+        /**
+         * 启动Kafka Controller
+         */
         kafkaController = new KafkaController(config, zkUtils, brokerState, kafkaMetricsTime, metrics, threadNamePrefix)
         kafkaController.startup()
 
@@ -237,7 +241,9 @@ class KafkaServer(val config: KafkaConfig, time: Time = SystemTime, threadNamePr
 
         Mx4jLoader.maybeLoad()
 
-        /* start dynamic config manager */
+        /**
+         * 动态更改配置管理器
+         */
         dynamicConfigHandlers = Map[String, ConfigHandler](ConfigType.Topic -> new TopicConfigHandler(logManager, config),
                                                            ConfigType.Client -> new ClientIdConfigHandler(apis.quotaManagers))
 

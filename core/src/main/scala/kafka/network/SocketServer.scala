@@ -419,7 +419,12 @@ private[kafka] class Processor(val id: Int,
         // register any new responses for writing
         processNewResponses()
         poll()
+        /**
+         * 把request请求放到requestchannel的requestQueue中去，
+         * 然后由程序轮询从requestQueue中取出请求交给api中注册的函数进行处理
+         */
         processCompletedReceives()
+        
         processCompletedSends()
         processDisconnected()
       } catch {
@@ -495,6 +500,7 @@ private[kafka] class Processor(val id: Int,
         val session = RequestChannel.Session(new KafkaPrincipal(KafkaPrincipal.USER_TYPE, channel.principal.getName),
           channel.socketAddress)
         val req = RequestChannel.Request(processor = id, connectionId = receive.source, session = session, buffer = receive.payload, startTimeMs = time.milliseconds, securityProtocol = protocol)
+        //把请求放到requestchannel的request队列中
         requestChannel.sendRequest(req)
         selector.mute(receive.source)
       } catch {

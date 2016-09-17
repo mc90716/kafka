@@ -45,6 +45,7 @@ class KafkaRequestHandler(id: Int,
           // time_window is independent of the number of threads, each recorded idle
           // time should be discounted by # threads.
           val startSelectTime = SystemTime.nanoseconds
+          //从requestchannel的请求队列中取出请求，然后交给api里面注册的函数进行处理
           req = requestChannel.receiveRequest(300)
           val idleTime = SystemTime.nanoseconds - startSelectTime
           aggregateIdleMeter.mark(idleTime / totalHandlerThreads)
@@ -67,6 +68,11 @@ class KafkaRequestHandler(id: Int,
   def shutdown(): Unit = requestChannel.sendRequest(RequestChannel.AllDone)
 }
 
+/**
+ * KafkaRequestHandlerPool是一个RequestHandler线程池，线程的个数为处理器的个数，
+ * 每个RequestHandler用于从RequestChannel的RequestQueue中取出请求，然后交给api中
+ * 注册的函数去处理请求
+ */
 class KafkaRequestHandlerPool(val brokerId: Int,
                               val requestChannel: RequestChannel,
                               val apis: KafkaApis,
