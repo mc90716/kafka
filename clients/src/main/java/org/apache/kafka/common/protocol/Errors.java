@@ -73,6 +73,7 @@ import org.slf4j.LoggerFactory;
  *
  * Do not add exceptions that occur only on the client or only on the server here.
  */
+//又见枚举的这种用法
 public enum Errors {
     UNKNOWN(-1, new UnknownServerException("The server experienced an unexpected error when processing the request")),
     NONE(0, null),

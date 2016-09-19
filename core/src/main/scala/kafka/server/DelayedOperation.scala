@@ -138,6 +138,7 @@ class DelayedOperationPurgatory[T <: DelayedOperation](purgatoryName: String,
   private[this] val estimatedTotalOperations = new AtomicInteger(0)
 
   /* background thread expiring operations that have timed out */
+  //后台收割清理线程
   private val expirationReaper = new ExpiredOperationReaper()
 
   private val metricsTags = Map("delayedOperation" -> purgatoryName)
@@ -158,6 +159,7 @@ class DelayedOperationPurgatory[T <: DelayedOperation](purgatoryName: String,
     metricsTags
   )
 
+  //启动收割清理线程
   if (reaperEnabled)
     expirationReaper.start()
 
@@ -365,6 +367,8 @@ class DelayedOperationPurgatory[T <: DelayedOperation](purgatoryName: String,
 
   /**
    * A background reaper to expire delayed operations that have timed out
+   * 
+   * 后台收割线程，用于从队列中移除已经完成的任务请求
    */
   private class ExpiredOperationReaper extends ShutdownableThread(
     "ExpirationReaper-%d".format(brokerId),

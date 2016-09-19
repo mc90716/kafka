@@ -394,19 +394,25 @@ class TopicDeletionManager(controller: KafkaController,
       if (!isRunning.get)
         return
 
+      //锁一下
       inLock(controllerContext.controllerLock) {
+        //所有要删除的topic
         val topicsQueuedForDeletion = Set.empty[String] ++ topicsToBeDeleted
 
+        //要删除的topic不为空
         if(topicsQueuedForDeletion.nonEmpty)
           info("Handling deletion for topics " + topicsQueuedForDeletion.mkString(","))
 
+        //遍历每一个要删除的topic
         topicsQueuedForDeletion.foreach { topic =>
         // if all replicas are marked as deleted successfully, then topic deletion is done
+          //如果副本状态机中对应的topic的所有副本都已经标记为删除状态，那么该topic就是已被删除
           if(controller.replicaStateMachine.areAllReplicasForTopicDeleted(topic)) {
             // clear up all state for this topic from controller cache and zookeeper
             completeDeleteTopic(topic)
             info("Deletion of topic %s successfully completed".format(topic))
           } else {
+            //如果至少有一个副本正在被删除，那么表明这个topic正在处于删除中的状态
             if(controller.replicaStateMachine.isAtLeastOneReplicaInDeletionStartedState(topic)) {
               // ignore since topic deletion is in progress
               val replicasInDeletionStartedState = controller.replicaStateMachine.replicasInState(topic, ReplicaDeletionStarted)
@@ -418,6 +424,7 @@ class TopicDeletionManager(controller: KafkaController,
               // if you come here, then no replica is in TopicDeletionStarted and all replicas are not in
               // TopicDeletionSuccessful. That means, that either given topic haven't initiated deletion
               // or there is at least one failed replica (which means topic deletion should be retried).
+              //走到这里表明删除失败，再重试删除
               if(controller.replicaStateMachine.isAnyReplicaInState(topic, ReplicaDeletionIneligible)) {
                 // mark topic for deletion retry
                 markTopicForDeletionRetry(topic)
@@ -425,6 +432,7 @@ class TopicDeletionManager(controller: KafkaController,
             }
           }
           // Try delete topic if it is eligible for deletion.
+          //试着删除符合 删除调节的topic
           if(isTopicEligibleForDeletion(topic)) {
             info("Deletion of topic %s (re)started".format(topic))
             // topic deletion will be kicked off

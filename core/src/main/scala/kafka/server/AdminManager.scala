@@ -31,6 +31,9 @@ import org.apache.kafka.common.requests.CreateTopicsRequest._
 import scala.collection._
 import scala.collection.JavaConverters._
 
+/**
+ * Kafka的管理员，负责删除和创建topic
+ */
 class AdminManager(val config: KafkaConfig,
                    val metrics: Metrics,
                    val metadataCache: MetadataCache,
@@ -124,6 +127,7 @@ class AdminManager(val config: KafkaConfig,
     // 1. map over topics calling the asynchronous delete
     val metadata = topics.map { topic =>
         try {
+          //首先在zk的/admin/delete_topics分支上创建一个节点，表明当前topic等待删除，因此删除操作是异步的
           AdminUtils.deleteTopic(zkUtils, topic)
           DeleteTopicMetadata(topic, Errors.NONE)
         } catch {
@@ -149,6 +153,9 @@ class AdminManager(val config: KafkaConfig,
       responseCallback(results)
     } else {
       // 3. else pass the topics and errors to the delayed operation and set the keys
+      //构建一个延时删除操作，然后如果不能立即删除的话就把这个延时删除操作放到purgatory中去
+      //purgatory是用于缓存一些 delayed request的。这些请求因为一些条件得不到满足，所以需要先放到purgatory里，
+      //等到条件满足了，再从里边移出来。
       val delayedDelete = new DelayedDeleteTopics(timeout, metadata.toSeq, this, responseCallback)
       val delayedDeleteKeys = topics.map(new TopicKey(_)).toSeq
       // try to complete the request immediately, otherwise put it into the purgatory

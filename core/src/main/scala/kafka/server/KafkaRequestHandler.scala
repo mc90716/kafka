@@ -26,6 +26,9 @@ import org.apache.kafka.common.utils.Utils
 
 /**
  * A thread that answers kafka requests.
+ * 
+ * KafkaServer启动的时候启动KafkaRequestHandler，循环从RequestChannel的RequestQueue中取出请求，
+ * 然后执行API中注册的方法
  */
 class KafkaRequestHandler(id: Int,
                           brokerId: Int,

@@ -228,6 +228,7 @@ class ReplicaManager(val config: KafkaConfig,
         if(deletePartition) {
           val removedPartition = allPartitions.remove((topic, partitionId))
           if (removedPartition != null) {
+            //删除本地Log文件
             removedPartition.delete() // this will delete the local log
             val topicHasPartitions = allPartitions.keys.exists { case (t, _) => topic == t }
             if (!topicHasPartitions)
@@ -241,6 +242,7 @@ class ReplicaManager(val config: KafkaConfig,
           val topicAndPartition = TopicAndPartition(topic, partitionId)
 
           if(logManager.getLog(topicAndPartition).isDefined) {
+              //删除本地log文件
               logManager.deleteLog(topicAndPartition)
           }
         }

@@ -61,6 +61,7 @@ class SocketServer(val config: KafkaConfig, val metrics: Metrics, val time: Time
 
   this.logIdent = "[Socket Server on Broker " + config.brokerId + "], "
 
+  //一个ServerSocket对应一个requestChannel
   val requestChannel = new RequestChannel(totalProcessorThreads, maxQueuedRequests)
   private val processors = new Array[Processor](totalProcessorThreads)
 
@@ -361,6 +362,10 @@ private[kafka] class Acceptor(val endPoint: EndPoint,
 /**
  * Thread that processes all requests from a single connection. There are N of these running in parallel
  * each of which has its own selector
+ * 
+ * Processor的任务是
+ * 1、将Acceptor接受到的请求放到RequestChannel的RequestQueue中
+ * 2、从RequestChannel的ResponseQueues数组中取出response
  */
 private[kafka] class Processor(val id: Int,
                                time: Time,

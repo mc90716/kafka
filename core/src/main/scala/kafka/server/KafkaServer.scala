@@ -217,10 +217,14 @@ class KafkaServer(val config: KafkaConfig, time: Time = SystemTime, threadNamePr
 
         /**
          * 启动Kafka Controller
+         * KafkaController里面有deleteManager，专门做删除topic的工作
          */
         kafkaController = new KafkaController(config, zkUtils, brokerState, kafkaMetricsTime, metrics, threadNamePrefix)
         kafkaController.startup()
 
+        /**
+         * Kafka的管理员，专门干删除和创建topic的事情
+         */
         adminManager = new AdminManager(config, metrics, metadataCache, zkUtils)
 
         /* start group coordinator */

@@ -79,6 +79,10 @@ class KafkaApis(val requestChannel: RequestChannel,
         case ApiKeys.LIST_OFFSETS => handleOffsetRequest(request)
         case ApiKeys.METADATA => handleTopicMetadataRequest(request)
         case ApiKeys.LEADER_AND_ISR => handleLeaderAndIsrRequest(request)
+        /**
+         * 收到停止副本的请求，在在这里会删除本地log文件，当收到delete命令的时候，
+         * delete会发送一个STOP_REPLICA请求给各个broker节点，然后在这里处理
+         */
         case ApiKeys.STOP_REPLICA => handleStopReplicaRequest(request)
         case ApiKeys.UPDATE_METADATA_KEY => handleUpdateMetadataRequest(request)
         case ApiKeys.CONTROLLED_SHUTDOWN_KEY => handleControlledShutdownRequest(request)
@@ -94,6 +98,9 @@ class KafkaApis(val requestChannel: RequestChannel,
         case ApiKeys.SASL_HANDSHAKE => handleSaslHandshakeRequest(request)
         case ApiKeys.API_VERSIONS => handleApiVersionsRequest(request)
         case ApiKeys.CREATE_TOPICS => handleCreateTopicsRequest(request)
+        /**
+         * 这里做的删除操作只是在zk上添加一个删除节点，然后将删除操作加到延时队列中去
+         */
         case ApiKeys.DELETE_TOPICS => handleDeleteTopicsRequest(request)
         case requestId => throw new KafkaException("Unknown api code " + requestId)
       }
@@ -159,6 +166,9 @@ class KafkaApis(val requestChannel: RequestChannel,
     }
   }
 
+  /**
+   * 处理停止副本的请求
+   */
   def handleStopReplicaRequest(request: RequestChannel.Request) {
     // ensureTopicExists is only for client facing requests
     // We can't have the ensureTopicExists check here since the controller sends it as an advisory to all brokers so they
@@ -168,6 +178,7 @@ class KafkaApis(val requestChannel: RequestChannel,
     val responseHeader = new ResponseHeader(request.header.correlationId)
     val response =
       if (authorize(request.session, ClusterAction, Resource.ClusterResource)) {
+        //通过验证之后交给副本管理器来删除副本
         val (result, error) = replicaManager.stopReplicas(stopReplicaRequest)
         new StopReplicaResponse(error, result.asInstanceOf[Map[TopicPartition, JShort]].asJava)
       } else {
@@ -1095,9 +1106,13 @@ class KafkaApis(val requestChannel: RequestChannel,
     }
   }
 
+  /**
+   * 处理删除topic的请求
+   */
   def handleDeleteTopicsRequest(request: RequestChannel.Request) {
     val deleteTopicRequest = request.body.asInstanceOf[DeleteTopicsRequest]
 
+    //首先验证有没有权限删除
     val (authorizedTopics, unauthorizedTopics) = deleteTopicRequest.topics.asScala.partition( topic =>
       authorize(request.session, Delete, new Resource(auth.Topic, topic))
     )
@@ -1111,6 +1126,7 @@ class KafkaApis(val requestChannel: RequestChannel,
       }
     ).toMap
 
+    //纯粹是定义一个函数，用于发送callback响应
     def sendResponseCallback(results: Map[String, Errors]): Unit = {
       val completeResults = results ++ unauthorizedResults
       val respHeader = new ResponseHeader(request.header.correlationId)
@@ -1119,6 +1135,7 @@ class KafkaApis(val requestChannel: RequestChannel,
       requestChannel.sendResponse(new RequestChannel.Response(request, new ResponseSend(request.connectionId, respHeader, responseBody)))
     }
 
+    //判断有没有Controller
     if (!controller.isActive()) {
       val results = deleteTopicRequest.topics.asScala.map { case topic =>
         (topic, Errors.NOT_CONTROLLER)
@@ -1129,6 +1146,7 @@ class KafkaApis(val requestChannel: RequestChannel,
       if (authorizedTopics.isEmpty)
         sendResponseCallback(Map())
       else {
+        //删除topic的时候委托给kafka管理员adminManager去做
         adminManager.deleteTopics(
           deleteTopicRequest.timeout.toInt,
           authorizedTopics,
