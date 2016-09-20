@@ -28,7 +28,7 @@ import java.util.Properties
 import kafka.common.{TopicAlreadyMarkedForDeletionException, TopicAndPartition}
 import org.apache.kafka.common.errors.InvalidTopicException
 
-class DeleteTopicTest extends ZooKeeperTestHarness {
+class DeleteTopicTest extends ZooKeeperTestHarness { 
 
   @Test
   def testDeleteTopicWithAllAliveReplicas() {

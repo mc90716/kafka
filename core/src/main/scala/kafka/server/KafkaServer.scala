@@ -204,6 +204,8 @@ class KafkaServer(val config: KafkaConfig, time: Time = SystemTime, threadNamePr
 
         /**
          * 启动kafka socket server
+         * 
+         * SockerServer的作用是Acceptor接收请求，Processor将请求放到队列中，后面交给一个api的线程池去处理
          */
         socketServer = new SocketServer(config, metrics, kafkaMetricsTime)
         socketServer.startup()
@@ -241,6 +243,11 @@ class KafkaServer(val config: KafkaConfig, time: Time = SystemTime, threadNamePr
         /* start processing requests */
         apis = new KafkaApis(socketServer.requestChannel, replicaManager, adminManager, groupCoordinator,
           kafkaController, zkUtils, config.brokerId, config, metadataCache, metrics, authorizer)
+        
+        /**
+         * 启动一个RequestHandler的线程池，线程池的作用就是处理Acceptor==>Processor
+         * 这条线上最终由Processor放到队列中的Request请求
+         */
         requestHandlerPool = new KafkaRequestHandlerPool(config.brokerId, socketServer.requestChannel, apis, config.numIoThreads)
 
         Mx4jLoader.maybeLoad()
@@ -627,7 +634,7 @@ class KafkaServer(val config: KafkaConfig, time: Time = SystemTime, threadNamePr
     val configs = AdminUtils.fetchAllTopicConfigs(zkUtils).map { case (topic, configs) =>
       topic -> LogConfig.fromProps(defaultProps, configs)
     }
-    // read the log configurations from zookeeper 
+    // read the log configurations from zookeeper  
     val cleanerConfig = CleanerConfig(numThreads = config.logCleanerThreads,
                                       dedupeBufferSize = config.logCleanerDedupeBufferSize,
                                       dedupeBufferLoadFactor = config.logCleanerDedupeBufferLoadFactor,
