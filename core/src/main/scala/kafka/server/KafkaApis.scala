@@ -167,7 +167,7 @@ class KafkaApis(val requestChannel: RequestChannel,
   }
 
   /**
-   * 处理停止副本的请求
+   * 处理停止副本的请求 
    */
   def handleStopReplicaRequest(request: RequestChannel.Request) {
     // ensureTopicExists is only for client facing requests
