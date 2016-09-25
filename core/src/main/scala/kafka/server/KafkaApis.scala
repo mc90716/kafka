@@ -74,9 +74,21 @@ class KafkaApis(val requestChannel: RequestChannel,
       trace("Handling request:%s from connection %s;securityProtocol:%s,principal:%s".
         format(request.requestDesc(true), request.connectionId, request.securityProtocol, request.session.principal))
       ApiKeys.forId(request.requestId) match {
+        /**
+         * 处理产生消息的请求，验证通过委托给ReplicaManager
+         */
         case ApiKeys.PRODUCE => handleProducerRequest(request)
+        /**
+         * 处理消费消息的请求，验证通过委托给ReplicaManager
+         */
         case ApiKeys.FETCH => handleFetchRequest(request)
+        /**
+         * 处理Offset请求，首先验证，然后从Segment中取
+         */
         case ApiKeys.LIST_OFFSETS => handleOffsetRequest(request)
+        /**
+         * 处理topic元数据请求
+         */
         case ApiKeys.METADATA => handleTopicMetadataRequest(request)
         case ApiKeys.LEADER_AND_ISR => handleLeaderAndIsrRequest(request)
         /**
@@ -87,8 +99,14 @@ class KafkaApis(val requestChannel: RequestChannel,
         case ApiKeys.UPDATE_METADATA_KEY => handleUpdateMetadataRequest(request)
         case ApiKeys.CONTROLLED_SHUTDOWN_KEY => handleControlledShutdownRequest(request)
         case ApiKeys.OFFSET_COMMIT => handleOffsetCommitRequest(request)
+        /**
+         * 处理获取Offset的信息，首先验证，然后从zk中读取
+         */
         case ApiKeys.OFFSET_FETCH => handleOffsetFetchRequest(request)
         case ApiKeys.GROUP_COORDINATOR => handleGroupCoordinatorRequest(request)
+        /**
+         * 处理添加到group的请求
+         */
         case ApiKeys.JOIN_GROUP => handleJoinGroupRequest(request)
         case ApiKeys.HEARTBEAT => handleHeartbeatRequest(request)
         case ApiKeys.LEAVE_GROUP => handleLeaveGroupRequest(request)
@@ -107,7 +125,7 @@ class KafkaApis(val requestChannel: RequestChannel,
     } catch {
       case e: Throwable =>
         if (request.requestObj != null) {
-          request.requestObj.handleError(e, requestChannel, request)
+          request.requestObj.handleError(e, requestChannel, request) 
           error("Error when handling request %s".format(request.requestObj), e)
         } else {
           val response = request.body.getErrorResponse(request.header.apiVersion, e)
@@ -341,11 +359,15 @@ class KafkaApis(val requestChannel: RequestChannel,
 
   /**
    * Handle a produce request
+   * 
+   * 处理Produce请求
+   * 
    */
   def handleProducerRequest(request: RequestChannel.Request) {
     val produceRequest = request.body.asInstanceOf[ProduceRequest]
     val numBytesAppended = request.header.sizeOf + produceRequest.sizeOf
 
+    //首先验证Request是否合法，实际上通过acl来实现的
     val (authorizedRequestInfo, unauthorizedRequestInfo) = produceRequest.partitionRecords.asScala.partition {
       case (topicPartition, _) => authorize(request.session, Write, new Resource(auth.Topic, topicPartition.topic))
     }
@@ -410,9 +432,11 @@ class KafkaApis(val requestChannel: RequestChannel,
         produceResponseCallback)
     }
 
+    //验证不通过
     if (authorizedRequestInfo.isEmpty)
       sendResponseCallback(Map.empty)
     else {
+      //验证通过
       val internalTopicsAllowed = request.header.clientId == AdminUtils.AdminClientId
 
       // Convert ByteBuffer to ByteBufferMessageSet
@@ -421,6 +445,9 @@ class KafkaApis(val requestChannel: RequestChannel,
       }
 
       // call the replica manager to append messages to the replicas
+      /**
+       * 验证通过之后，produce请求实际上是通过ReplicaManager来实现的
+       */
       replicaManager.appendMessages(
         produceRequest.timeout.toLong,
         produceRequest.acks,
@@ -441,6 +468,7 @@ class KafkaApis(val requestChannel: RequestChannel,
   def handleFetchRequest(request: RequestChannel.Request) {
     val fetchRequest = request.requestObj.asInstanceOf[FetchRequest]
 
+    //首先验证请求是否合法，通过ACL实现权限验证
     val (authorizedRequestInfo, unauthorizedRequestInfo) = fetchRequest.requestInfo.partition {
       case (topicAndPartition, _) => authorize(request.session, Read, new Resource(auth.Topic, topicAndPartition.topic))
     }
@@ -512,6 +540,9 @@ class KafkaApis(val requestChannel: RequestChannel,
       sendResponseCallback(Map.empty)
     else {
       // call the replica manager to fetch messages from the local replica
+      /**
+       * 消费消息的请求也是由replicaManager实现
+       */
       replicaManager.fetchMessages(
         fetchRequest.maxWait.toLong,
         fetchRequest.replicaId,
@@ -522,7 +553,9 @@ class KafkaApis(val requestChannel: RequestChannel,
   }
 
   /**
-   * Handle an offset request
+   * 处理获取Offset的请求
+   * 1、首先通过ACL验证是否有权限
+   * 2、调用fetchOffsets方法拿到offset
    */
   def handleOffsetRequest(request: RequestChannel.Request) {
     val correlationId = request.header.correlationId
@@ -586,6 +619,10 @@ class KafkaApis(val requestChannel: RequestChannel,
     requestChannel.sendResponse(new RequestChannel.Response(request, new ResponseSend(request.connectionId, responseHeader, response)))
   }
 
+  /**
+   * 1、从LogManager中拿到所有的Log对象
+   * 2、调用fetchOffsetsBefore
+   */
   def fetchOffsets(logManager: LogManager, topicPartition: TopicPartition, timestamp: Long, maxNumOffsets: Int): Seq[Long] = {
     logManager.getLog(TopicAndPartition(topicPartition.topic, topicPartition.partition)) match {
       case Some(log) =>
@@ -598,6 +635,11 @@ class KafkaApis(val requestChannel: RequestChannel,
     }
   }
 
+  /**
+   * 1、从Log对象中拿到所有的Segment
+   * 2、遍历每一个Segment，拿到每个Segment的baseOffset和最后更新时间lastModified
+   * 3、对比一个PartitionData的时间类型以及offset的个数，最终返回一个排序过的offset数组(每个值是Segment里面 offset)
+   */
   private[server] def fetchOffsetsBefore(log: Log, timestamp: Long, maxNumOffsets: Int): Seq[Long] = {
     val segsArray = log.logSegments.toArray
     var offsetTimeArray: Array[(Long, Long)] = null
@@ -676,6 +718,10 @@ class KafkaApis(val requestChannel: RequestChannel,
     topicMetadata.headOption.getOrElse(createGroupMetadataTopic())
   }
 
+  /**
+   * 从metadata中拿Topic元数据信息，如果返回的响应里面topic的数量和请求的数量一样，那么直接返回响应
+   * 如果topic数量不一样，拿到请求的topic里面不存在于响应的topic集合里面的topic，然后执行创建topic逻辑
+   */
   private def getTopicMetadata(topics: Set[String], securityProtocol: SecurityProtocol, errorUnavailableEndpoints: Boolean): Seq[MetadataResponse.TopicMetadata] = {
     val topicResponses = metadataCache.getTopicMetadata(topics, securityProtocol, errorUnavailableEndpoints)
     if (topics.isEmpty || topicResponses.size == topics.size) {
@@ -698,6 +744,8 @@ class KafkaApis(val requestChannel: RequestChannel,
 
   /**
    * Handle a topic metadata request
+   * 
+   * 处理Topic元数据请求
    */
   def handleTopicMetadataRequest(request: RequestChannel.Request) {
     val metadataRequest = request.body.asInstanceOf[MetadataRequest]
@@ -765,6 +813,8 @@ class KafkaApis(val requestChannel: RequestChannel,
 
   /*
    * Handle an offset fetch request
+   * 1、首先通过ACL验证请求的合法性
+   * 2、从zk中取offset的信息，与handleOffsetRequest不同的是handleOffsetRequest是从每个Segment中取offset信息
    */
   def handleOffsetFetchRequest(request: RequestChannel.Request) {
     val header = request.header

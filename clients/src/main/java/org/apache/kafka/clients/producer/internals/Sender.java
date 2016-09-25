@@ -124,6 +124,8 @@ public class Sender implements Runnable {
 
     /**
      * The main run loop for the sender thread
+     * 
+     * 发送消息线程的主循环
      */
     public void run() {
         log.debug("Starting Kafka producer I/O thread.");

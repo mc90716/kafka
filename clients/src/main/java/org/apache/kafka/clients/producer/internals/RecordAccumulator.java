@@ -54,6 +54,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <p>
  * The accumulator uses a bounded amount of memory and append calls will block when that memory is exhausted, unless
  * this behavior is explicitly disabled.
+ * 
+ * 记录累加器，核心数据结构是有一个TopicPartition到Deque<RecordBatch>的结构，用于存放记录
+ * 
  */
 public final class RecordAccumulator {
 

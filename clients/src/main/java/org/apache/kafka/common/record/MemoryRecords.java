@@ -31,6 +31,7 @@ public class MemoryRecords implements Records {
     private final static int WRITE_LIMIT_FOR_READABLE_ONLY = -1;
 
     // the compressor used for appends-only
+    //消息最终会按照消息的协议写到Compressor中
     private final Compressor compressor;
 
     // the write limit for writable buffer, which may be smaller than the buffer capacity

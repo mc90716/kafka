@@ -41,12 +41,18 @@ import org.apache.kafka.common.utils.Time;
  * buffers are deallocated.
  * </ol>
  */
+/**
+ * 一个Buffer的内存池，用于控制申请内存的大小，同时对于每个来申请内存的线程来
+ * 说是公平的，最先给等待时间最长的线程分配内存
+ * @author 云袭
+ *
+ */
 public final class BufferPool {
 
     private final long totalMemory;
-    private final int poolableSize;
+    private final int poolableSize; //free里面每个ByteBuffer的大小
     private final ReentrantLock lock;
-    private final Deque<ByteBuffer> free;
+    private final Deque<ByteBuffer> free;  //内存池
     private final Deque<Condition> waiters;
     private long availableMemory;
     private final Metrics metrics;

@@ -112,6 +112,7 @@ class SimpleAclAuthorizer extends Authorizer with Logging {
                       JaasUtils.isZkSecurityEnabled())
     zkUtils.makeSurePersistentPathExists(SimpleAclAuthorizer.AclZkPath)
 
+    //从zk中加载acl信息
     loadCache()
 
     zkUtils.makeSurePersistentPathExists(SimpleAclAuthorizer.AclChangedZkPath)
@@ -234,6 +235,7 @@ class SimpleAclAuthorizer extends Authorizer with Logging {
         val resourceTypePath = SimpleAclAuthorizer.AclZkPath + "/" + resourceType.name
         val resourceNames = zkUtils.getChildren(resourceTypePath)
         for (resourceName <- resourceNames) {
+          //所有的ACL信息放在zookeeper中，从zk中拿到acl，然后更新到本地缓存中
           val versionedAcls = getAclsFromZk(Resource(resourceType, resourceName.toString))
           updateCache(new Resource(resourceType, resourceName), versionedAcls)
         }
