@@ -111,6 +111,9 @@ private[kafka] class ZookeeperConsumerConnector(val config: ConsumerConfig,
     underlying.commitOffsets(true)
   }
 
+  /**
+   * Offset的提交
+   */
   def commitOffsets(retryOnFailure: Boolean) {
     underlying.commitOffsets(retryOnFailure)
   }
