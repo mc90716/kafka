@@ -246,6 +246,8 @@ class KafkaApis(val requestChannel: RequestChannel,
 
   /**
    * Handle an offset commit request
+   * 
+   * Offset的存储介质是kafka而不是zookeeper，那么offset的commit请求在这里被处理
    */
   def handleOffsetCommitRequest(request: RequestChannel.Request) {
     val header = request.header

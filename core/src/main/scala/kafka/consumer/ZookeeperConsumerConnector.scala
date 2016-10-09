@@ -332,6 +332,9 @@ private[kafka] class ZookeeperConsumerConnector(val config: ConsumerConfig,
 
   }
 
+  /**
+   * Offset的提交操作，将offset的请求写到offsetchannel中
+   */
   def commitOffsets(offsetsToCommit: immutable.Map[TopicAndPartition, OffsetAndMetadata], isAutoCommit: Boolean) {
     trace("OffsetMap: %s".format(offsetsToCommit))
     var retriesRemaining = 1 + (if (isAutoCommit) 0 else config.offsetsCommitMaxRetries) // no retries for commits from auto-commit

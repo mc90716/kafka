@@ -23,6 +23,10 @@ import collection.mutable
 import collection.JavaConversions
 import kafka.common.KafkaException
 
+/**
+ * Kafka的pool设计，继承迭代器接口
+ * 内部包含一个ConcurrentMap和一个createLock
+ */
 class Pool[K,V](valueFactory: Option[(K) => V] = None) extends Iterable[(K, V)] {
 
   private val pool: ConcurrentMap[K, V] = new ConcurrentHashMap[K, V]
