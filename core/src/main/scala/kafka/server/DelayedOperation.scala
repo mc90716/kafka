@@ -63,6 +63,9 @@ abstract class DelayedOperation(override val delayMs: Long) extends TimerTask wi
    * the first thread will succeed in completing the operation and return
    * true, others will still return false
    */
+  /**
+   * forcecomplete使用cas操作来保证这段代码只执行一次
+   */
   def forceComplete(): Boolean = {
     if (completed.compareAndSet(false, true)) {
       // cancel the timeout timer
