@@ -168,8 +168,9 @@ public class Sender implements Runnable {
     /**
      * Run a single iteration of sending
      * 
-     * @param now
-     *            The current POSIX time in milliseconds
+     * @param now The current POSIX time in milliseconds
+     * 
+     * 1、从集群中拿到记录累加器中对应的能发送数据的Partition
      */
     void run(long now) {
         Cluster cluster = metadata.fetch();

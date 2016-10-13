@@ -845,6 +845,7 @@ public abstract class AbstractCoordinator implements Closeable {
                         client.pollNoWakeup();
                         long now = time.milliseconds();
 
+                        //如果心跳失败，那么就触犯寻找Coordinator的逻辑
                         if (coordinatorUnknown()) {
                             if (findCoordinatorFuture == null)
                                 lookupCoordinator();
@@ -863,8 +864,10 @@ public abstract class AbstractCoordinator implements Closeable {
                             // coordinator disconnected
                             AbstractCoordinator.this.wait(retryBackoffMs);
                         } else {
+                        	//设置心跳时间
                             heartbeat.sentHeartbeat(now);
 
+                            //发送heartbeat请求，并且添加listener，分为成功的listener和失败的listener
                             sendHeartbeatRequest().addListener(new RequestFutureListener<Void>() {
                                 @Override
                                 public void onSuccess(Void value) {
