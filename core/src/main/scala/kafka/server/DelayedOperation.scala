@@ -371,7 +371,7 @@ class DelayedOperationPurgatory[T <: DelayedOperation](purgatoryName: String,
   /**
    * A background reaper to expire delayed operations that have timed out
    * 
-   * 后台收割线程，用于从队列中移除已经完成的任务请求
+   * 后台收割线程，用于从队列中移除已经完成的任务请求，并且触发时间轮的时间ticker，同时拿出到期的任务
    */
   private class ExpiredOperationReaper extends ShutdownableThread(
     "ExpirationReaper-%d".format(brokerId),
