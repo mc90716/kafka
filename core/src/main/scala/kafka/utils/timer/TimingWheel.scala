@@ -37,11 +37,11 @@ import java.util.concurrent.atomic.AtomicInteger
  * based timers, such as java.util.concurrent.DelayQueue and java.util.Timer, have O(log n)
  * insert/delete cost.
  *
- * A major drawback of a simple timing wheel is that it assumes that a timer request is within
+ * A major drawback(缺点) of a simple timing wheel is that it assumes that a timer request is within
  * the time interval of n * u from the current time. If a timer request is out of this interval,
  * it is an overflow. A hierarchical timing wheel deals with such overflows. It is a hierarchically
  * organized timing wheels. The lowest level has the finest time resolution. As moving up the
- * hierarchy, time resolutions become coarser. If the resolution of a wheel at one level is u and
+ * hierarchy, time resolutions become coarser(粗糙的). If the resolution of a wheel at one level is u and
  * the size is n, the resolution of the next level should be n * u. At each level overflows are
  * delegated to the wheel in one level higher. When the wheel in the higher level ticks, it reinsert
  * timer tasks to the lower level. An overflow wheel can be created on-demand. When a bucket in an
@@ -97,7 +97,8 @@ import java.util.concurrent.atomic.AtomicInteger
  * It is caller's responsibility to enforce it. Simultaneous add calls are thread-safe.
  */
 @nonthreadsafe
-private[timer] class TimingWheel(tickMs: Long, wheelSize: Int, startMs: Long, taskCounter: AtomicInteger, queue: DelayQueue[TimerTaskList]) {
+private[timer] class TimingWheel(tickMs: Long, wheelSize: Int, startMs: Long, taskCounter: AtomicInteger,
+    queue: DelayQueue[TimerTaskList]) {
 
   private[this] val interval = tickMs * wheelSize
   private[this] val buckets = Array.tabulate[TimerTaskList](wheelSize) { _ => new TimerTaskList(taskCounter) }
