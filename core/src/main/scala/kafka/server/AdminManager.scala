@@ -144,7 +144,7 @@ class AdminManager(val config: KafkaConfig,
     if (timeout <= 0 || !metadata.exists(_.error == Errors.NONE)) {
       val results = metadata.map { deleteTopicMetadata =>
         // ignore topics that already have errors
-        if (deleteTopicMetadata.error == Errors.NONE) {
+        if (deleteTopicMetadata.error == Errors.NONE) { 
           (deleteTopicMetadata.topic, Errors.REQUEST_TIMED_OUT)
         } else {
           (deleteTopicMetadata.topic, deleteTopicMetadata.error)
