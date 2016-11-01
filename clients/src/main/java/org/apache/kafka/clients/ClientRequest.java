@@ -19,9 +19,12 @@ import org.apache.kafka.common.requests.RequestSend;
  */
 public final class ClientRequest {
 
+	//请求的创建时间
     private final long createdTimeMs;
+    //是否需要response
     private final boolean expectResponse;
     private final RequestSend request;
+    //Request发送完成之后的callback
     private final RequestCompletionHandler callback;
     private final boolean isInitiatedByNetworkClient;
     private long sendTimeMs;

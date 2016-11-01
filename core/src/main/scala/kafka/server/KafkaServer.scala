@@ -191,7 +191,7 @@ class KafkaServer(val config: KafkaConfig, time: Time = SystemTime, threadNamePr
 
         /* start log manager */
         /**
-         * 初始化并启动kafka的数据管理模块
+         * 初始化并启动kafka的数据管理模块，创建LogManager的时候首先会根据logDir进行数据的recover
          */
         logManager = createLogManager(zkUtils.zkClient, brokerState)
         logManager.startup()

@@ -104,6 +104,11 @@ class Log(val dir: File,
   val t = time.milliseconds
   /* the actual segments of the log */
   private val segments: ConcurrentNavigableMap[java.lang.Long, LogSegment] = new ConcurrentSkipListMap[java.lang.Long, LogSegment]
+  
+  
+  /**
+   * 在new Log的时候执行loadSegment方法，加载磁盘中的数据
+   */
   loadSegments()
 
   /* Calculate the offset of the next message */

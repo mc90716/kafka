@@ -147,7 +147,9 @@ class LogManager(val logDirs: Array[File],
           val topicPartition = Log.parseTopicPartitionName(logDir)
           val config = topicConfigs.getOrElse(topicPartition.topic, defaultConfig)
           val logRecoveryPoint = recoveryPoints.getOrElse(topicPartition, 0L)
-
+          /**
+           * 在new Log的时候执行loadSegment方法，加载磁盘中的数据
+           */
           val current = new Log(logDir, config, logRecoveryPoint, scheduler, time)
           val previous = this.logs.put(topicPartition, current)
 
@@ -187,23 +189,36 @@ class LogManager(val logDirs: Array[File],
     /* Schedule the cleanup task to delete old logs */
     if(scheduler != null) {
       info("Starting log cleanup with a period of %d ms.".format(retentionCheckMs))
+      /**
+       * cleanup:删除失效的Segment或者为了控制日志的大小要删除一些文件
+       */
       scheduler.schedule("kafka-log-retention",
                          cleanupLogs,
                          delay = InitialTaskDelayMs,
                          period = retentionCheckMs,
                          TimeUnit.MILLISECONDS)
       info("Starting log flusher with a default period of %d ms.".format(flushCheckMs))
+      /**
+       * 根据时间策略将还在操作系统缓存层的文件写到磁盘上，刷新到磁盘的实际操作就是
+       * 调用FileChannel的force方法和MappedByteBuffer的force方法
+       */
       scheduler.schedule("kafka-log-flusher", 
                          flushDirtyLogs, 
                          delay = InitialTaskDelayMs, 
                          period = flushCheckMs, 
                          TimeUnit.MILLISECONDS)
+      /**
+       * 定时将checkpoint点写状态写到文件中
+       */
       scheduler.schedule("kafka-recovery-point-checkpoint",
                          checkpointRecoveryPointOffsets,
                          delay = InitialTaskDelayMs,
                          period = flushCheckpointMs,
                          TimeUnit.MILLISECONDS)
     }
+    /**
+     * 日志压缩，针对带有key的消息的清理策略
+     */
     if(cleanerConfig.enableCleaner)
       cleaner.startup()
   }

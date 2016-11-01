@@ -23,6 +23,10 @@ import kafka.utils.{SystemTime, threadsafe}
 
 import scala.math._
 
+/**
+ * TimerTaskList是一个双向环状链表，root节点的pre节点是tail节点，tail节点的next节点是root节点
+ * 当调用add方法往list中添加新节点的时候，新节点被添加到尾部
+ */
 @threadsafe
 private[timer] class TimerTaskList(taskCounter: AtomicInteger) extends Delayed {
 
