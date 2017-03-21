@@ -53,6 +53,7 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -789,6 +790,7 @@ public abstract class AbstractCoordinator implements Closeable {
     }
 
     private class HeartbeatThread extends Thread {
+//    	LinkedTransferQueue<E>
         private boolean enabled = false;
         private boolean closed = false;
         private AtomicReference<RuntimeException> failed = new AtomicReference<>(null);

@@ -19,6 +19,8 @@ package org.apache.kafka.common.record;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
+import sun.applet.Main;
+
 /**
  * A byte buffer backed output outputStream
  */
@@ -54,4 +56,5 @@ public class ByteBufferOutputStream extends OutputStream {
         temp.put(buffer.array(), buffer.arrayOffset(), buffer.position());
         buffer = temp;
     }
+    
 }

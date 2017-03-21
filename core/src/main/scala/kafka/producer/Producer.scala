@@ -74,6 +74,10 @@ class Producer[K,V](val config: ProducerConfig,
       if (hasShutdown.get)
         throw new ProducerClosedException
       recordStats(messages)
+      /**
+       * 同步的时候是把message发送出去，等待ack
+       * 异步的时候是把message扔到一个队列中，然后由另外一个线程来懂队列中读数据往kafka Server中写
+       */
       if (sync)
         eventHandler.handle(messages)
       else

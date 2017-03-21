@@ -252,6 +252,7 @@ private[kafka] class ZookeeperConsumerConnector(val config: ConsumerConfig,
     // make a list of (queue,stream) pairs, one pair for each threadId
     val queuesAndStreams = topicThreadIds.values.map(threadIdSet =>
       threadIdSet.map(_ => {
+        //该queue就是客户端存放消息的queue
         val queue =  new LinkedBlockingQueue[FetchedDataChunk](config.queuedMaxMessages)
         val stream = new KafkaStream[K,V](
           queue, config.consumerTimeoutMs, keyDecoder, valueDecoder, config.clientId)
@@ -260,7 +261,9 @@ private[kafka] class ZookeeperConsumerConnector(val config: ConsumerConfig,
     ).flatten.toList
 
     val dirs = new ZKGroupDirs(config.groupId)
+    
     registerConsumerInZK(dirs, consumerIdString, topicCount)
+    
     reinitializeConsumer(topicCount, queuesAndStreams)
 
     loadBalancerListener.kafkaMessageAndMetadataStreams.asInstanceOf[Map[String, List[KafkaStream[K,V]]]]
@@ -269,6 +272,9 @@ private[kafka] class ZookeeperConsumerConnector(val config: ConsumerConfig,
   // this API is used by unit tests only
   def getTopicRegistry: Pool[String, Pool[Int, PartitionTopicInfo]] = topicRegistry
 
+  /**
+   * 把Consumer注册到ZK中
+   */
   private def registerConsumerInZK(dirs: ZKGroupDirs, consumerIdString: String, topicCount: TopicCount) {
     info("begin registering consumer " + consumerIdString + " in ZK")
     val timestamp = SystemTime.milliseconds.toString
@@ -831,7 +837,7 @@ private[kafka] class ZookeeperConsumerConnector(val config: ConsumerConfig,
       for (partitionInfos <- topicRegistry.values)
         for (partition <- partitionInfos.values)
           allPartitionInfos ::= partition
-      info("Consumer " + consumerIdString + " selected partitions : " +
+        info("Consumer " + consumerIdString + " selected partitions : " +
         allPartitionInfos.sortWith((s,t) => s.partitionId < t.partitionId).map(_.toString).mkString(","))
 
       fetcher match {
@@ -977,6 +983,7 @@ private[kafka] class ZookeeperConsumerConnector(val config: ConsumerConfig,
     }
 
     // explicitly trigger load balancing for this consumer
+    //显式触发一下consumer的rebalance
     loadBalancerListener.syncedRebalance()
   }
 
