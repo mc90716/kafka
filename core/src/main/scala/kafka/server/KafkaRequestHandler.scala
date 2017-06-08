@@ -21,21 +21,20 @@ import kafka.network._
 import kafka.utils._
 import kafka.metrics.KafkaMetricsGroup
 import java.util.concurrent.TimeUnit
+
 import com.yammer.metrics.core.Meter
-import org.apache.kafka.common.utils.Utils
+import org.apache.kafka.common.utils.{Time, Utils}
 
 /**
  * A thread that answers kafka requests.
- * 
- * KafkaServer启动的时候启动KafkaRequestHandler，循环从RequestChannel的RequestQueue中取出请求，
- * 然后执行API中注册的方法
  */
 class KafkaRequestHandler(id: Int,
                           brokerId: Int,
                           val aggregateIdleMeter: Meter,
                           val totalHandlerThreads: Int,
                           val requestChannel: RequestChannel,
-                          apis: KafkaApis) extends Runnable with Logging {
+                          apis: KafkaApis,
+                          time: Time) extends Runnable with Logging {
   this.logIdent = "[Kafka Request Handler " + id + " on Broker " + brokerId + "], "
 
   def run() {
@@ -47,10 +46,9 @@ class KafkaRequestHandler(id: Int,
           // Since meter is calculated as total_recorded_value / time_window and
           // time_window is independent of the number of threads, each recorded idle
           // time should be discounted by # threads.
-          val startSelectTime = SystemTime.nanoseconds
-          //从requestchannel的请求队列中取出请求，然后交给api里面注册的函数进行处理
+          val startSelectTime = time.nanoseconds
           req = requestChannel.receiveRequest(300)
-          val idleTime = SystemTime.nanoseconds - startSelectTime
+          val idleTime = time.nanoseconds - startSelectTime
           aggregateIdleMeter.mark(idleTime / totalHandlerThreads)
         }
 
@@ -59,7 +57,7 @@ class KafkaRequestHandler(id: Int,
             id, brokerId))
           return
         }
-        req.requestDequeueTimeMs = SystemTime.milliseconds
+        req.requestDequeueTimeMs = time.milliseconds
         trace("Kafka request handler %d on broker %d handling request %s".format(id, brokerId, req))
         apis.handle(req)
       } catch {
@@ -71,14 +69,10 @@ class KafkaRequestHandler(id: Int,
   def shutdown(): Unit = requestChannel.sendRequest(RequestChannel.AllDone)
 }
 
-/**
- * KafkaRequestHandlerPool是一个RequestHandler线程池，线程的个数为处理器的个数，
- * 每个RequestHandler用于从RequestChannel的RequestQueue中取出请求，然后交给api中
- * 注册的函数去处理请求
- */
 class KafkaRequestHandlerPool(val brokerId: Int,
                               val requestChannel: RequestChannel,
                               val apis: KafkaApis,
+                              time: Time,
                               numThreads: Int) extends Logging with KafkaMetricsGroup {
 
   /* a meter to track the average free capacity of the request handlers */
@@ -88,7 +82,7 @@ class KafkaRequestHandlerPool(val brokerId: Int,
   val threads = new Array[Thread](numThreads)
   val runnables = new Array[KafkaRequestHandler](numThreads)
   for(i <- 0 until numThreads) {
-    runnables(i) = new KafkaRequestHandler(i, brokerId, aggregateIdleMeter, numThreads, requestChannel, apis)
+    runnables(i) = new KafkaRequestHandler(i, brokerId, aggregateIdleMeter, numThreads, requestChannel, apis, time)
     threads(i) = Utils.daemonThread("kafka-request-handler-" + i, runnables(i))
     threads(i).start()
   }

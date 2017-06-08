@@ -16,17 +16,14 @@
  */
 package kafka.utils.timer
 
-import java.util.concurrent.{TimeUnit, Delayed}
-import java.util.concurrent.atomic.{AtomicLong, AtomicInteger}
+import java.util.concurrent.{Delayed, TimeUnit}
+import java.util.concurrent.atomic.{AtomicInteger, AtomicLong}
 
-import kafka.utils.{SystemTime, threadsafe}
+import kafka.utils.threadsafe
+import org.apache.kafka.common.utils.Time
 
 import scala.math._
 
-/**
- * TimerTaskList是一个双向环状链表，root节点的pre节点是tail节点，tail节点的next节点是root节点
- * 当调用add方法往list中添加新节点的时候，新节点被添加到尾部
- */
 @threadsafe
 private[timer] class TimerTaskList(taskCounter: AtomicInteger) extends Delayed {
 
@@ -121,7 +118,7 @@ private[timer] class TimerTaskList(taskCounter: AtomicInteger) extends Delayed {
   }
 
   def getDelay(unit: TimeUnit): Long = {
-    unit.convert(max(getExpiration - SystemTime.hiResClockMs, 0), TimeUnit.MILLISECONDS)
+    unit.convert(max(getExpiration - Time.SYSTEM.hiResClockMs, 0), TimeUnit.MILLISECONDS)
   }
 
   def compareTo(d: Delayed): Int = {

@@ -23,24 +23,27 @@ import kafka.common.TopicAlreadyMarkedForDeletionException
 import kafka.log.LogConfig
 import kafka.metrics.KafkaMetricsGroup
 import kafka.utils._
-import org.apache.kafka.common.errors.InvalidRequestException
+import org.apache.kafka.common.errors.{ApiException, InvalidRequestException, PolicyViolationException}
 import org.apache.kafka.common.metrics.Metrics
 import org.apache.kafka.common.protocol.Errors
 import org.apache.kafka.common.requests.CreateTopicsRequest._
+import org.apache.kafka.common.requests.CreateTopicsResponse
+import org.apache.kafka.server.policy.CreateTopicPolicy
+import org.apache.kafka.server.policy.CreateTopicPolicy.RequestMetadata
 
 import scala.collection._
 import scala.collection.JavaConverters._
 
-/**
- * Kafka的管理员，负责删除和创建topic
- */
 class AdminManager(val config: KafkaConfig,
                    val metrics: Metrics,
                    val metadataCache: MetadataCache,
                    val zkUtils: ZkUtils) extends Logging with KafkaMetricsGroup {
   this.logIdent = "[Admin Manager on Broker " + config.brokerId + "]: "
 
-  val topicPurgatory = DelayedOperationPurgatory[DelayedOperation]("topic", config.brokerId)
+  private val topicPurgatory = DelayedOperationPurgatory[DelayedOperation]("topic", config.brokerId)
+
+  private val createTopicPolicy =
+    Option(config.getConfiguredInstance(KafkaConfig.CreateTopicPolicyClassNameProp, classOf[CreateTopicPolicy]))
 
   def hasDelayedTopicOperations = topicPurgatory.delayed() != 0
 
@@ -58,8 +61,9 @@ class AdminManager(val config: KafkaConfig,
     * The callback function will be triggered either when timeout, error or the topics are created.
     */
   def createTopics(timeout: Int,
+                   validateOnly: Boolean,
                    createInfo: Map[String, TopicDetails],
-                   responseCallback: Map[String, Errors] => Unit) {
+                   responseCallback: Map[String, CreateTopicsResponse.Error] => Unit) {
 
     // 1. map over topics creating assignment and calling zookeeper
     val brokers = metadataCache.getAliveBrokers.map { b => kafka.admin.BrokerMetadata(b.id, b.rack) }
@@ -77,31 +81,57 @@ class AdminManager(val config: KafkaConfig,
             throw new InvalidRequestException("Both numPartitions or replicationFactor and replicasAssignments were set. " +
               "Both cannot be used at the same time.")
           else if (!arguments.replicasAssignments.isEmpty) {
-            // Note: we don't check that replicaAssignment doesn't contain unknown brokers - unlike in add-partitions case,
+            // Note: we don't check that replicaAssignment contains unknown brokers - unlike in add-partitions case,
             // this follows the existing logic in TopicCommand
             arguments.replicasAssignments.asScala.map { case (partitionId, replicas) =>
               (partitionId.intValue, replicas.asScala.map(_.intValue))
             }
-          } else {
+          } else
             AdminUtils.assignReplicasToBrokers(brokers, arguments.numPartitions, arguments.replicationFactor)
-          }
         }
         trace(s"Assignments for topic $topic are $assignments ")
-        AdminUtils.createOrUpdateTopicPartitionAssignmentPathInZK(zkUtils, topic, assignments, configs, update = false)
-        CreateTopicMetadata(topic, assignments, Errors.NONE)
+
+        createTopicPolicy match {
+          case Some(policy) =>
+            AdminUtils.validateCreateOrUpdateTopic(zkUtils, topic, assignments, configs, update = false)
+
+            // Use `null` for unset fields in the public API
+            val numPartitions: java.lang.Integer =
+              if (arguments.numPartitions == NO_NUM_PARTITIONS) null else arguments.numPartitions
+            val replicationFactor: java.lang.Short =
+              if (arguments.replicationFactor == NO_REPLICATION_FACTOR) null else arguments.replicationFactor
+            val replicaAssignments = if (arguments.replicasAssignments.isEmpty) null else arguments.replicasAssignments
+
+            policy.validate(new RequestMetadata(topic, numPartitions, replicationFactor, replicaAssignments,
+              arguments.configs))
+
+            if (!validateOnly)
+              AdminUtils.createOrUpdateTopicPartitionAssignmentPathInZK(zkUtils, topic, assignments, configs, update = false)
+
+          case None =>
+            if (validateOnly)
+              AdminUtils.validateCreateOrUpdateTopic(zkUtils, topic, assignments, configs, update = false)
+            else
+              AdminUtils.createOrUpdateTopicPartitionAssignmentPathInZK(zkUtils, topic, assignments, configs, update = false)
+        }
+        CreateTopicMetadata(topic, assignments, new CreateTopicsResponse.Error(Errors.NONE, null))
       } catch {
+        // Log client errors at a lower level than unexpected exceptions
+        case e@ (_: PolicyViolationException | _: ApiException) =>
+          info(s"Error processing create topic request for topic $topic with arguments $arguments", e)
+          CreateTopicMetadata(topic, Map(), new CreateTopicsResponse.Error(Errors.forException(e), e.getMessage))
         case e: Throwable =>
-          warn(s"Error processing create topic request for topic $topic with arguments $arguments", e)
-          CreateTopicMetadata(topic, Map(), Errors.forException(e))
+          error(s"Error processing create topic request for topic $topic with arguments $arguments", e)
+          CreateTopicMetadata(topic, Map(), new CreateTopicsResponse.Error(Errors.forException(e), e.getMessage))
       }
     }
 
-    // 2. if timeout <= 0 or no topics can proceed return immediately
-    if (timeout <= 0 || !metadata.exists(_.error == Errors.NONE)) {
+    // 2. if timeout <= 0, validateOnly or no topics can proceed return immediately
+    if (timeout <= 0 || validateOnly || !metadata.exists(_.error.is(Errors.NONE))) {
       val results = metadata.map { createTopicMetadata =>
         // ignore topics that already have errors
-        if (createTopicMetadata.error == Errors.NONE) {
-          (createTopicMetadata.topic, Errors.REQUEST_TIMED_OUT)
+        if (createTopicMetadata.error.is(Errors.NONE) && !validateOnly) {
+          (createTopicMetadata.topic, new CreateTopicsResponse.Error(Errors.REQUEST_TIMED_OUT, null))
         } else {
           (createTopicMetadata.topic, createTopicMetadata.error)
         }
@@ -127,11 +157,10 @@ class AdminManager(val config: KafkaConfig,
     // 1. map over topics calling the asynchronous delete
     val metadata = topics.map { topic =>
         try {
-          //首先在zk的/admin/delete_topics分支上创建一个节点，表明当前topic等待删除，因此删除操作是异步的
           AdminUtils.deleteTopic(zkUtils, topic)
           DeleteTopicMetadata(topic, Errors.NONE)
         } catch {
-          case e: TopicAlreadyMarkedForDeletionException =>
+          case _: TopicAlreadyMarkedForDeletionException =>
             // swallow the exception, and still track deletion allowing multiple calls to wait for deletion
             DeleteTopicMetadata(topic, Errors.NONE)
           case e: Throwable =>
@@ -144,7 +173,7 @@ class AdminManager(val config: KafkaConfig,
     if (timeout <= 0 || !metadata.exists(_.error == Errors.NONE)) {
       val results = metadata.map { deleteTopicMetadata =>
         // ignore topics that already have errors
-        if (deleteTopicMetadata.error == Errors.NONE) { 
+        if (deleteTopicMetadata.error == Errors.NONE) {
           (deleteTopicMetadata.topic, Errors.REQUEST_TIMED_OUT)
         } else {
           (deleteTopicMetadata.topic, deleteTopicMetadata.error)
@@ -153,13 +182,15 @@ class AdminManager(val config: KafkaConfig,
       responseCallback(results)
     } else {
       // 3. else pass the topics and errors to the delayed operation and set the keys
-      //构建一个延时删除操作，然后如果不能立即删除的话就把这个延时删除操作放到purgatory中去
-      //purgatory是用于缓存一些 delayed request的。这些请求因为一些条件得不到满足，所以需要先放到purgatory里，
-      //等到条件满足了，再从里边移出来。
       val delayedDelete = new DelayedDeleteTopics(timeout, metadata.toSeq, this, responseCallback)
       val delayedDeleteKeys = topics.map(new TopicKey(_)).toSeq
       // try to complete the request immediately, otherwise put it into the purgatory
       topicPurgatory.tryCompleteElseWatch(delayedDelete, delayedDeleteKeys)
     }
+  }
+
+  def shutdown() {
+    topicPurgatory.shutdown()
+    CoreUtils.swallow(createTopicPolicy.foreach(_.close()))
   }
 }

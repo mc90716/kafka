@@ -43,6 +43,7 @@ import org.apache.kafka.common.errors.InvalidSessionTimeoutException;
 import org.apache.kafka.common.errors.InvalidTimestampException;
 import org.apache.kafka.common.errors.InvalidTopicException;
 import org.apache.kafka.common.errors.LeaderNotAvailableException;
+import org.apache.kafka.common.errors.UnsupportedForMessageFormatException;
 import org.apache.kafka.common.errors.NetworkException;
 import org.apache.kafka.common.errors.NotControllerException;
 import org.apache.kafka.common.errors.NotCoordinatorForGroupException;
@@ -51,6 +52,7 @@ import org.apache.kafka.common.errors.NotEnoughReplicasException;
 import org.apache.kafka.common.errors.NotLeaderForPartitionException;
 import org.apache.kafka.common.errors.OffsetMetadataTooLarge;
 import org.apache.kafka.common.errors.OffsetOutOfRangeException;
+import org.apache.kafka.common.errors.PolicyViolationException;
 import org.apache.kafka.common.errors.RebalanceInProgressException;
 import org.apache.kafka.common.errors.RecordBatchTooLargeException;
 import org.apache.kafka.common.errors.RecordTooLargeException;
@@ -73,7 +75,6 @@ import org.slf4j.LoggerFactory;
  *
  * Do not add exceptions that occur only on the client or only on the server here.
  */
-//又见枚举的这种用法
 public enum Errors {
     UNKNOWN(-1, new UnknownServerException("The server experienced an unexpected error when processing the request")),
     NONE(0, null),
@@ -162,7 +163,10 @@ public enum Errors {
         new NotControllerException("This is not the correct controller for this cluster.")),
     INVALID_REQUEST(42,
         new InvalidRequestException("This most likely occurs because of a request being malformed by the client library or" +
-            " the message was sent to an incompatible broker. See the broker logs for more details."));
+            " the message was sent to an incompatible broker. See the broker logs for more details.")),
+    UNSUPPORTED_FOR_MESSAGE_FORMAT(43,
+        new UnsupportedForMessageFormatException("The message format version on the broker does not support the request.")),
+    POLICY_VIOLATION(44, new PolicyViolationException("Request parameters do not satisfy the configured policy."));
 
     private static final Logger log = LoggerFactory.getLogger(Errors.class);
 
@@ -180,7 +184,7 @@ public enum Errors {
     private final short code;
     private final ApiException exception;
 
-    private Errors(int code, ApiException exception) {
+    Errors(int code, ApiException exception) {
         this.code = (short) code;
         this.exception = exception;
     }

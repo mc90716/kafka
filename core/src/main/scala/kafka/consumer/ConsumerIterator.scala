@@ -60,10 +60,6 @@ class ConsumerIterator[K, V](private val channel: BlockingQueue[FetchedDataChunk
     var localCurrent = current.get()
     if(localCurrent == null || !localCurrent.hasNext) {
       if (consumerTimeoutMs < 0)
-        /**
-         * 如果有数据的话，此处会取出数据来，否则take操作将阻塞，
-         * 对应客户端的阻塞是ConsumerIterator的hasNext方法阻塞
-         */
         currentDataChunk = channel.take
       else {
         currentDataChunk = channel.poll(consumerTimeoutMs, TimeUnit.MILLISECONDS)

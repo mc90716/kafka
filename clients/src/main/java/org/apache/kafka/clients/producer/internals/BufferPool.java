@@ -41,26 +41,14 @@ import org.apache.kafka.common.utils.Time;
  * buffers are deallocated.
  * </ol>
  */
-/**
- * 一个Buffer的内存池，用于控制申请内存的大小，同时对于每个来申请内存的线程来
- * 说是公平的，最先给等待时间最长的线程分配内存
- * @author 云袭
- *
- */
 public final class BufferPool {
 
     private final long totalMemory;
-    private final int poolableSize; //free里面每个ByteBuffer的大小
+    private final int poolableSize;
     private final ReentrantLock lock;
-    /**
-     * BufferPool的内存分为两部分，一块是free里面的内存，一块是availableMemory标识的内存
-     * 如果说客户端申请的大小正好等于free里面一个bytebuffer的大小的话，如果free中有空闲的，
-     * 那么就直接从free中分配，如果没有的话从availableMemory中分配
-     */
-    private final Deque<ByteBuffer> free;  //内存池
-    private long availableMemory;//bufferpool所能分配的最大内存大小
-    //waiters存放当前有多少客户端等待分配内存
+    private final Deque<ByteBuffer> free;
     private final Deque<Condition> waiters;
+    private long availableMemory;
     private final Metrics metrics;
     private final Time time;
     private final Sensor waitTime;
@@ -77,7 +65,7 @@ public final class BufferPool {
     public BufferPool(long memory, int poolableSize, Metrics metrics, Time time, String metricGrpName) {
         this.poolableSize = poolableSize;
         this.lock = new ReentrantLock();
-        this.free = new ArrayDeque<ByteBuffer>();//初始容量为16
+        this.free = new ArrayDeque<ByteBuffer>();
         this.waiters = new ArrayDeque<Condition>();
         this.totalMemory = memory;
         this.availableMemory = memory;
@@ -110,17 +98,12 @@ public final class BufferPool {
 
         this.lock.lock();
         try {
-            /**
-             * 如果有剩余空间，并且要申请的空间的大小正好等于free里面一个ByteBuffer的大小，
-             * 那么就从free双端队列中取出第一个元素
-             */
-            if (size == poolableSize && !this.free.isEmpty()) {
-            	return this.free.pollFirst();
-            }
+            // check if we have a free buffer of the right size pooled
+            if (size == poolableSize && !this.free.isEmpty())
+                return this.free.pollFirst();
 
             // now check if the request is immediately satisfiable with the
             // memory on hand or if we need to block
-            //算出总的大小
             int freeListSize = this.free.size() * this.poolableSize;
             if (this.availableMemory + freeListSize >= size) {
                 // we have enough unallocated or pooled memory to immediately
@@ -204,9 +187,6 @@ public final class BufferPool {
     /**
      * Attempt to ensure we have at least the requested number of bytes of memory for allocation by deallocating pooled
      * buffers (if needed)
-     * 
-     * 如果说当前要申请的内存大小大于availableMemory的大小，并且free里面有空闲的内存块，那么就不断的从
-     * free里面拿出相应的内存大小加到availableMemory中，直到满足要申请的内存大小
      */
     private void freeUp(int size) {
         while (!this.free.isEmpty() && this.availableMemory < size)
@@ -218,7 +198,7 @@ public final class BufferPool {
      * memory as free.
      * 
      * @param buffer The buffer to return
-     * @param size The size of the buffer to mark as deallocated, note that this maybe smaller than buffer.capacity
+     * @param size The size of the buffer to mark as deallocated, note that this may be smaller than buffer.capacity
      *             since the buffer may re-allocate itself during in-place compression
      */
     public void deallocate(ByteBuffer buffer, int size) {

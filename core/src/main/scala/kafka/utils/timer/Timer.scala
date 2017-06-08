@@ -21,8 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
 import kafka.utils.threadsafe
-import org.apache.kafka.common.utils.Utils
-import kafka.utils.SystemTime
+import org.apache.kafka.common.utils.{Time, Utils}
 
 trait Timer {
   /**
@@ -56,7 +55,7 @@ trait Timer {
 class SystemTimer(executorName: String,
                   tickMs: Long = 1,
                   wheelSize: Int = 20,
-                  startMs: Long = SystemTime.hiResClockMs) extends Timer {
+                  startMs: Long = Time.SYSTEM.hiResClockMs) extends Timer {
 
   // timeout timer
   private[this] val taskExecutor = Executors.newFixedThreadPool(1, new ThreadFactory() {
@@ -82,7 +81,7 @@ class SystemTimer(executorName: String,
   def add(timerTask: TimerTask): Unit = {
     readLock.lock()
     try {
-      addTimerTaskEntry(new TimerTaskEntry(timerTask, timerTask.delayMs + SystemTime.hiResClockMs))
+      addTimerTaskEntry(new TimerTaskEntry(timerTask, timerTask.delayMs + Time.SYSTEM.hiResClockMs))
     } finally {
       readLock.unlock()
     }
@@ -90,7 +89,7 @@ class SystemTimer(executorName: String,
 
   private def addTimerTaskEntry(timerTaskEntry: TimerTaskEntry): Unit = {
     if (!timingWheel.add(timerTaskEntry)) {
-      // Already expired or cancelled
+      // Already expired or cancelled  已经到期的任务或者没有取消的任务
       if (!timerTaskEntry.cancelled)
         taskExecutor.submit(timerTaskEntry.timerTask)
     }
@@ -109,6 +108,7 @@ class SystemTimer(executorName: String,
       try {
         while (bucket != null) {
           timingWheel.advanceClock(bucket.getExpiration())
+          //时间轮降级，重新插入到时间轮中
           bucket.flush(reinsert)
           bucket = delayQueue.poll()
         }
