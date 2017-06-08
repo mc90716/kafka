@@ -126,7 +126,7 @@ private[timer] class TimerTaskList(taskCounter: AtomicInteger) extends Delayed {
     val other = d.asInstanceOf[TimerTaskList]
 
     if(getExpiration < other.getExpiration) -1
-    else if(getExpiration > other.getExpiration) 1
+    else if(getExpiration > other.getExpiration) 1 
     else 0
   }
 
